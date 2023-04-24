@@ -91,7 +91,7 @@ ADS1256_DRATE_2_5SPS = 0x03
 
 
 class ADS1256:
-    def __init__(self, bus=1, device=1, cs_pin=2, drdy_pin=5, vref=2.5, freq=768000):
+    def __init__(self, bus=1, device=1, cs_pin=2, drdy_pin=None, vref=2.5, freq=768000):
         self.spi = spidev.SpiDev()
         self.spi.open(bus, device)
         self.cs_pin = cs_pin
@@ -101,8 +101,9 @@ class ADS1256:
         wp.wiringPiSetup()
         # Set CS as output
         wp.pinMode(self.cs_pin, wp.GPIO.OUTPUT)
-        # Set DRDY as input
-        wp.pinMode(self.drdy_pin, wp.GPIO.INPUT)
+        if self.drdy_pin is not None:
+            # Set DRDY as input
+            wp.pinMode(self.drdy_pin, wp.GPIO.INPUT)
 
         self.spi.mode = 0b01
         self.spi.max_speed_hz = freq
@@ -253,6 +254,11 @@ class ADS1256:
         return
     
     def waitDRDY(self):
-        while wp.digitalRead(self.drdy_pin) != 0:
-            pass
+        if self.drdy_pin is not None: # Hardware trigger
+            while wp.digitalRead(self.drdy_pin) != 0:
+                pass
+        else: # Software trigger
+            while self.readRegister(STATUS) & (1<<0) != 0:
+                pass
         return
+
